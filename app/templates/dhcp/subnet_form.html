@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}{{ action }} Subnet{% endblock %}
+{% block content %}
+<h2>{{ action }} Subnet</h2>
+<form method="post" class="mt-3" style="max-width: 600px;">
+  <div class="mb-3">
+    <label class="form-label">Subnet ID</label>
+    <input type="number" name="subnet_id" class="form-control" required
+           value="{{ subnet.id if subnet else '' }}"
+           {% if action == 'Edit' %}readonly{% endif %}>
+  </div>
+  <div class="mb-3">
+    <label class="form-label">Subnet (CIDR)</label>
+    <input type="text" name="subnet" class="form-control" required
+           placeholder="192.168.1.0/24"
+           value="{{ subnet.subnet if subnet else '' }}">
+  </div>
+  <div class="mb-3">
+    <label class="form-label">Pool Start</label>
+    <input type="text" name="pool_start" class="form-control"
+           placeholder="192.168.1.100"
+           value="{{ subnet.pools[0].pool.split('-')[0] if subnet and subnet.pools else '' }}">
+  </div>
+  <div class="mb-3">
+    <label class="form-label">Pool End</label>
+    <input type="text" name="pool_end" class="form-control"
+           placeholder="192.168.1.200"
+           value="{{ subnet.pools[0].pool.split('-')[1] if subnet and subnet.pools else '' }}">
+  </div>
+  <div class="mb-3">
+    <label class="form-label">Default Gateway (routers)</label>
+    <input type="text" name="routers" class="form-control"
+           placeholder="192.168.1.1"
+           value="{% for o in (subnet or {}).get('option-data', []) %}{% if o.name == 'routers' %}{{ o.data }}{% endif %}{% endfor %}">
+  </div>
+  <div class="mb-3">
+    <label class="form-label">DNS Servers</label>
+    <input type="text" name="dns_servers" class="form-control"
+           placeholder="8.8.8.8, 8.8.4.4"
+           value="{% for o in (subnet or {}).get('option-data', []) %}{% if o.name == 'domain-name-servers' %}{{ o.data }}{% endif %}{% endfor %}">
+  </div>
+  <button class="btn btn-primary">{{ action }} Subnet</button>
+  <a href="{{ url_for('dhcp_subnets') }}" class="btn btn-secondary">Cancel</a>
+</form>
+{% endblock %}

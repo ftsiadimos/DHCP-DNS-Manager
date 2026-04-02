@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+{% block title %}DNS Zones{% endblock %}
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-4">
+  <h4 class="fw-bold mb-0"><i class="bi bi-globe me-2"></i>DNS Zones</h4>
+</div>
+
+<!-- Add Zone Form -->
+<div class="card mb-4">
+  <div class="card-header fw-semibold"><i class="bi bi-plus-circle me-2"></i>Add Zone</div>
+  <div class="card-body">
+    <form method="post" class="row g-2 align-items-end">
+      <input type="hidden" name="action" value="add">
+      <div class="col-md-4">
+        <label class="form-label small">Zone Name</label>
+        <input type="text" name="name" class="form-control" placeholder="example.com" required>
+      </div>
+      <div class="col-md-2">
+        <label class="form-label small">Type</label>
+        <select name="zone_type" class="form-select">
+          <option value="forward">Forward</option>
+          <option value="reverse">Reverse</option>
+        </select>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label small">Description <span class="text-muted">(optional)</span></label>
+        <input type="text" name="description" class="form-control" placeholder="My production zone">
+      </div>
+      <div class="col-md-2">
+        <button type="submit" class="btn btn-primary w-100"><i class="bi bi-plus me-1"></i>Add</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Zone List -->
+<div class="card mb-4">
+  <div class="card-header fw-semibold"><i class="bi bi-list-ul me-2"></i>Managed Zones</div>
+  <div class="card-body p-0">
+    {% if zones %}
+    <table class="table table-hover mb-0">
+      <thead class="table-light">
+        <tr>
+          <th>Zone Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th class="text-end">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for zone in zones %}
+        <tr>
+          <td>
+            <a href="{{ url_for('dns_records', zone=zone.name) }}" class="fw-semibold text-decoration-none">
+              <i class="bi bi-{{ 'arrow-right-circle' if zone.zone_type == 'forward' else 'arrow-left-circle' }} me-1 text-muted"></i>
+              {{ zone.name }}
+            </a>
+          </td>
+          <td>
+            <span class="badge bg-{{ 'primary' if zone.zone_type == 'forward' else 'secondary' }}">
+              {{ zone.zone_type }}
+            </span>
+          </td>
+          <td class="text-muted small">{{ zone.description }}</td>
+          <td class="text-end">
+            <a href="{{ url_for('dns_records', zone=zone.name) }}" class="btn btn-sm btn-outline-primary me-1">
+              <i class="bi bi-card-list me-1"></i>Records
+            </a>
+            <form method="post" class="d-inline"
+                  onsubmit="return confirm('Delete zone {{ zone.name }}?')">
+              <input type="hidden" name="action" value="delete">
+              <input type="hidden" name="zone_id" value="{{ zone.id }}">
+              <button class="btn btn-sm btn-outline-danger">
+                <i class="bi bi-trash"></i>
+              </button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="text-muted p-4 text-center">
+      <i class="bi bi-inbox fs-4 d-block mb-2"></i>No zones added yet. Use the form above to add your first zone.
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Browse any zone -->
+<div class="card mb-4">
+  <div class="card-header fw-semibold"><i class="bi bi-search me-2"></i>Browse Any Zone</div>
+  <div class="card-body">
+    <form class="row g-2" action="{{ url_for('dns_records') }}">
+      <div class="col">
+        <input type="text" name="zone" class="form-control" placeholder="Zone name…">
+      </div>
+      <div class="col-auto">
+        <button class="btn btn-outline-secondary">Browse</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Named status -->
+<details>
+  <summary class="text-muted small mb-2" style="cursor:pointer;">
+    <i class="bi bi-terminal me-1"></i>Named server status
+  </summary>
+  <div class="card mt-2">
+    <div class="card-body p-2">
+      <pre class="output mb-0">{% if status.stdout %}{{ status.stdout }}{% elif status.error %}{{ status.error }}{% else %}{{ status | tojson(indent=2) }}{% endif %}</pre>
+    </div>
+  </div>
+</details>
+{% endblock %}

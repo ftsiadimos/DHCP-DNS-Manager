@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+{% block title %}DHCP Leases{% endblock %}
+{% block content %}
+<style>
+  .cell-clip { max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block; }
+  thead th[data-col] { cursor: pointer; user-select: none; white-space: nowrap; }
+  thead th[data-col]:hover { opacity: .8; }
+  .sort-icon { font-size: .7rem; margin-left: 3px; opacity: .7; }
+</style>
+
+<div class="d-flex align-items-center justify-content-between mb-3">
+  <h4 class="fw-bold mb-0"><i class="bi bi-list-ul me-2"></i>DHCP Leases</h4>
+  <form class="d-flex gap-2 align-items-center">
+    <input type="number" name="subnet_id" class="form-control form-control-sm"
+           placeholder="Subnet ID" value="{{ subnet_id or '' }}" style="width:140px;">
+    <button class="btn btn-sm btn-outline-primary">Filter</button>
+  </form>
+</div>
+
+{% if leases %}
+<div class="d-flex align-items-center gap-3 mb-2">
+  <span class="text-muted small">Total: <strong>{{ leases | length }}</strong>
+    <span id="lease-shown-count" class="text-secondary"></span></span>
+  <input id="lease-search" type="search" class="form-control form-control-sm"
+         placeholder="Search IP, hostname or MAC…" style="max-width:280px;">
+</div>
+<table class="table table-sm table-hover" id="lease-table">
+  <thead class="table-dark">
+    <tr>
+      <th data-col="0" data-sort-ip="1">IP Address<span class="sort-icon"></span></th>
+      <th data-col="1">Hostname<span class="sort-icon"></span></th>
+      <th data-col="2">MAC Address<span class="sort-icon"></span></th>
+      <th data-col="3">State<span class="sort-icon"></span></th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for l in leases %}
+    <tr>
+      <td><code>{{ l.get('ip-address', '') }}</code></td>
+      <td>
+        {% set hn = l.get('hostname', '') %}
+        {% if hn %}<span class="cell-clip" title="{{ hn }}">{{ hn }}</span>
+        {% else %}<span class="text-muted">&mdash;</span>{% endif %}
+      </td>
+      <td><span class="cell-clip font-monospace small" title="{{ l.get('hw-address','') }}">{{ l.get('hw-address','') }}</span></td>
+      <td>
+        {% if l.get('state') in (0, 'default') %}<span class="badge bg-success">active</span>
+        {% else %}<span class="badge bg-secondary">{{ l.get('state','') }}</span>{% endif %}
+      </td>
+      <td>
+        <form method="post" action="{{ url_for('dhcp_lease_delete') }}" class="d-inline"
+              onsubmit="return confirm('Delete lease {{ l.get('ip-address','') }}?')">
+          <input type="hidden" name="ip_address" value="{{ l.get('ip-address','') }}">
+          <button class="btn btn-sm btn-outline-danger py-0">Delete</button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+{% if error %}
+<div class="alert alert-warning">
+  <strong>Could not retrieve leases:</strong> {{ error }}
+  {% if "not supported" in (error | lower) or "hook" in (error | lower) or "result code 2" in (error | lower) %}
+  <br><small class="text-muted">Tip: the <code>lease_cmds</code> hook library must be loaded in your Kea configuration.</small>
+  {% endif %}
+</div>
+{% else %}
+<p class="text-muted">No leases found.</p>
+{% endif %}
+{% endif %}
+<script>
+var si = document.getElementById('lease-search');
+if (si) {
+  si.addEventListener('input', function() {
+    var q = this.value.toLowerCase();
+    var visible = 0;
+    document.querySelectorAll('#lease-table tbody tr').forEach(function(row) {
+      var show = row.textContent.toLowerCase().includes(q);
+      row.style.display = show ? '' : 'none';
+      if (show) visible++;
+    });
+    var total = document.querySelectorAll('#lease-table tbody tr').length;
+    var el = document.getElementById('lease-shown-count');
+    if (el) el.textContent = (visible < total) ? '(' + visible + ' shown)' : '';
+  });
+}
+(function() {
+  var table = document.getElementById('lease-table');
+  if (!table) return;
+  var ths = table.querySelectorAll('thead th[data-col]');
+  var sortCol = -1, sortAsc = true;
+  function cellText(row, col) {
+    var cell = row.cells[col];
+    return (cell.querySelector('[title]') || cell).textContent.trim();
+  }
+  function sortVal(row, col, isIP, isNum) {
+    var t = cellText(row, col);
+    if (isIP) return t.split('.').map(function(n){ return ('000'+n).slice(-3); }).join('.');
+    if (isNum) return parseFloat(t) || 0;
+    return t.toLowerCase();
+  }
+  ths.forEach(function(th) {
+    th.addEventListener('click', function() {
+      var col = parseInt(th.dataset.col);
+      var isIP = th.dataset.sortIp === '1';
+      var isNum = th.dataset.sortNum === '1';
+      sortAsc = (sortCol === col) ? !sortAsc : true;
+      sortCol = col;
+      ths.forEach(function(h) {
+        h.querySelector('.sort-icon').textContent =
+          (parseInt(h.dataset.col) === sortCol) ? (sortAsc ? ' ▲' : ' ▼') : '';
+      });
+      var tbody = table.querySelector('tbody');
+      Array.from(tbody.rows)
+        .sort(function(a, b) {
+          var av = sortVal(a, col, isIP, isNum);
+          var bv = sortVal(b, col, isIP, isNum);
+          if (typeof av === 'number') return sortAsc ? av - bv : bv - av;
+          return sortAsc ? av.localeCompare(bv) : bv.localeCompare(av);
+        })
+        .forEach(function(r) { tbody.appendChild(r); });
+    });
+  });
+})();
+</script>
+{% endblock %}

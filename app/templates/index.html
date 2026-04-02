@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-4">
+  <h4 class="fw-bold mb-0"><i class="bi bi-speedometer2 me-2"></i>Dashboard</h4>
+  <a href="/" class="btn btn-sm btn-outline-secondary"><i class="bi bi-arrow-clockwise me-1"></i>Refresh</a>
+</div>
+
+<!-- Service Status Cards -->
+<div class="row g-3 mb-4">
+  <div class="col-md-6">
+    <div class="card h-100 border-{{ kea_class }}">
+      <div class="card-header d-flex align-items-center justify-content-between bg-{{ kea_class }} bg-opacity-10 border-{{ kea_class }}">
+        <span class="fw-semibold"><i class="bi bi-hdd-rack me-2"></i>Kea DHCP</span>
+        <span class="badge bg-{{ kea_class }}">{{ kea_state }}</span>
+      </div>
+      <div class="card-body">
+        <div class="row g-2">
+          <div class="col-6">
+            <div class="rounded p-3 text-center bg-light">
+              <div class="fs-3 fw-bold text-primary">{{ subnet_count }}</div>
+              <div class="small text-muted">Subnets</div>
+            </div>
+          </div>
+          <div class="col-6">
+            <div class="rounded p-3 text-center bg-light">
+              <div class="fs-3 fw-bold text-info">{{ lease_count }}</div>
+              <div class="small text-muted">Active Leases</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="card h-100 border-{{ dns_class }}">
+      <div class="card-header d-flex align-items-center justify-content-between bg-{{ dns_class }} bg-opacity-10 border-{{ dns_class }}">
+        <span class="fw-semibold"><i class="bi bi-globe me-2"></i>BIND / named</span>
+        <span class="badge bg-{{ dns_class }}">{{ dns_state }}</span>
+      </div>
+      <div class="card-body">
+        <div id="dns-stats-note" class="mb-2"></div>
+        <div class="row g-2 mb-3">
+          <div class="col-6">
+            <div class="rounded p-3 text-center bg-light">
+              <div class="fs-3 fw-bold text-success" id="dns-zone-count">
+                <span class="spinner-border spinner-border-sm text-secondary"></span>
+              </div>
+              <div class="small text-muted">Zones</div>
+            </div>
+          </div>
+          <div class="col-6">
+            <div class="rounded p-3 text-center bg-light">
+              <div class="fs-3 fw-bold text-info" id="dns-record-count">
+                <span class="spinner-border spinner-border-sm text-secondary"></span>
+              </div>
+              <div class="small text-muted">Total Records</div>
+            </div>
+          </div>
+        </div>
+    </div>
+  </div>
+</div>
+
+<!-- Raw details (collapsible) -->
+<div class="row g-3">
+  <div class="col-md-6">
+    <details>
+      <summary class="text-muted small mb-2" style="cursor:pointer;">
+        <i class="bi bi-code-slash me-1"></i>Kea raw response
+      </summary>
+      <pre class="output mt-1">{{ kea_status | tojson(indent=2) }}</pre>
+    </details>
+  </div>
+  <div class="col-md-6">
+    <details>
+      <summary class="text-muted small mb-2" style="cursor:pointer;">
+        <i class="bi bi-code-slash me-1"></i>DNS raw response
+      </summary>
+      <pre class="output mt-1" id="dns-raw">loading…</pre>
+    </details>
+  </div>
+</div>
+
+<script>
+fetch('/api/stats')
+  .then(r => r.json())
+  .then(data => {
+    const dns = data.dns || {};
+    document.getElementById('dns-zone-count').textContent = dns.zone_count ?? '–';
+    document.getElementById('dns-record-count').textContent = dns.total_records ?? '–';
+
+    const noteEl = document.getElementById('dns-stats-note');
+    if (dns.error) {
+      noteEl.innerHTML = `<div class="alert alert-warning small py-1"><i class="bi bi-exclamation-triangle me-1"></i>${dns.error}</div>`;
+    } else if (dns.note) {
+      noteEl.innerHTML = `<div class="alert alert-info small py-1"><i class="bi bi-info-circle me-1"></i>${dns.note}</div>`;
+    }
+
+    const rawEl = document.getElementById('dns-raw');
+    if (rawEl) rawEl.textContent = JSON.stringify(dns, null, 2);
+  })
+  .catch(err => {
+    document.getElementById('dns-zone-count').textContent = '–';
+    document.getElementById('dns-record-count').textContent = '–';
+    document.getElementById('dns-stats-note').innerHTML =
+      `<div class="alert alert-danger small py-1"><i class="bi bi-x-circle me-1"></i>${err}</div>`;
+  });
+</script>
+{% endblock %}

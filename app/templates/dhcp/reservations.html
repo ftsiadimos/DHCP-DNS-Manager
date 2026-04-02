@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}Reservations – Subnet {{ subnet_id }}{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h2>Reservations – Subnet {{ subnet_id }}</h2>
+  <a href="{{ url_for('dhcp_reservation_add', subnet_id=subnet_id) }}"
+     class="btn btn-primary">Add Reservation</a>
+</div>
+
+{% if reservations %}
+<table class="table table-striped">
+  <thead>
+    <tr><th>MAC Address</th><th>IP Address</th><th>Hostname</th><th>Actions</th></tr>
+  </thead>
+  <tbody>
+    {% for r in reservations %}
+    <tr>
+      <td>{{ r.get('hw-address', '') }}</td>
+      <td>{{ r.get('ip-address', '—') }}</td>
+      <td>{{ r.get('hostname', '') }}</td>
+      <td>
+        {% if r.get('ip-address') %}
+        <form method="post"
+              action="{{ url_for('dhcp_reservation_delete', subnet_id=subnet_id) }}"
+              class="d-inline"
+              onsubmit="return confirm('Delete reservation?')">
+          <input type="hidden" name="ip_address" value="{{ r.get('ip-address', '') }}">
+          <button class="btn btn-sm btn-outline-danger">Delete</button>
+        </form>
+        {% else %}
+        <span class="text-muted small">Edit config to delete</span>
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p class="text-muted">No reservations found.</p>
+{% endif %}
+<a href="{{ url_for('dhcp_subnets') }}" class="btn btn-secondary mt-2">Back to Subnets</a>
+{% endblock %}

@@ -1,0 +1,167 @@
+{% extends "base.html" %}
+{% block title %}DNS Records – {{ zone }}{% endblock %}
+{% block content %}
+<style>
+  .cell-clip { max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block; }
+  thead th[data-col] { cursor: pointer; user-select: none; white-space: nowrap; }
+  thead th[data-col]:hover { opacity: .8; }
+  .sort-icon { font-size: .7rem; margin-left: 3px; opacity: .7; }
+</style>
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h4 class="fw-bold mb-0"><i class="bi bi-card-list me-2"></i>DNS Records
+    <small class="text-muted fw-normal fs-6 ms-2">{{ zone }}</small>
+  </h4>
+  <a href="{{ url_for('dns_record_add', zone=zone) }}" class="btn btn-primary btn-sm">
+    <i class="bi bi-plus-lg me-1"></i>Add Record
+  </a>
+</div>
+
+{% if records is mapping and records.error %}
+  <div class="alert alert-danger">{{ records.error }}</div>
+{% elif records %}
+<div class="d-flex align-items-center gap-3 mb-2 flex-wrap">
+  <span class="text-muted small">Total: <strong>{{ records | length }}</strong>
+    <span id="dns-shown-count" class="text-secondary"></span></span>
+  <input id="dns-search" type="search" class="form-control form-control-sm"
+         placeholder="Search name or data…" autocomplete="off" style="max-width:260px;">
+  <div class="btn-group btn-group-sm" id="type-filter" role="group">
+    <button type="button" class="btn btn-outline-secondary active" data-type="ALL">All</button>
+    {% set types = records | map(attribute='type') | unique | sort %}
+    {% for t in types %}
+    <button type="button" class="btn btn-outline-secondary" data-type="{{ t }}">{{ t }}</button>
+    {% endfor %}
+  </div>
+</div>
+<table class="table table-sm table-hover" id="dns-table">
+  <thead class="table-dark">
+    <tr>
+      <th data-col="0">Name<span class="sort-icon"></span></th>
+      <th data-col="1">Type<span class="sort-icon"></span></th>
+      <th data-col="2" data-sort-num="1">TTL<span class="sort-icon"></span></th>
+      <th data-col="3">Data<span class="sort-icon"></span></th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for r in records %}
+    <tr data-type="{{ r.type }}">
+      <td><span class="cell-clip" title="{{ r.name }}">{{ r.name }}</span></td>
+      <td><span class="badge bg-secondary">{{ r.type }}</span></td>
+      <td><small class="text-muted">{{ r.ttl }}</small></td>
+      <td><span class="cell-clip font-monospace small" title="{{ r.data }}">{{ r.data }}</span></td>
+      <td class="text-end">
+        <a href="{{ url_for('dns_record_edit', zone=zone, name=r.name,
+                   rtype=r.type, data=r.data, ttl=r.ttl) }}"
+           class="btn btn-sm btn-outline-warning py-0">Edit</a>
+        <form method="post" action="{{ url_for('dns_record_delete') }}"
+              class="d-inline" onsubmit="return confirm('Delete this record?')">
+          <input type="hidden" name="zone" value="{{ zone }}">
+          <input type="hidden" name="name" value="{{ r.name }}">
+          <input type="hidden" name="rtype" value="{{ r.type }}">
+          <input type="hidden" name="data" value="{{ r.data }}">
+          <input type="hidden" name="_q" class="js-state-q">
+          <input type="hidden" name="_type" class="js-state-type">
+          <button class="btn btn-sm btn-outline-danger py-0">Delete</button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p class="text-muted">No records found or zone transfer failed.</p>
+{% endif %}
+<script>
+(function() {
+  var params = new URLSearchParams(window.location.search);
+  var initQ = params.get('q') || '';
+  var initType = params.get('type') || 'ALL';
+
+  var search = document.getElementById('dns-search');
+  var activeType = initType;
+
+  // Restore search input
+  if (search && initQ) search.value = initQ;
+
+  // Restore active type button
+  document.querySelectorAll('#type-filter button').forEach(function(btn) {
+    btn.classList.toggle('active', btn.dataset.type === initType);
+  });
+
+  function syncStateToForms() {
+    var q = search ? search.value : '';
+    document.querySelectorAll('.js-state-q').forEach(function(el) { el.value = q; });
+    document.querySelectorAll('.js-state-type').forEach(function(el) { el.value = activeType; });
+  }
+
+  function applyFilters() {
+    var q = search ? search.value.toLowerCase() : '';
+    var visible = 0;
+    document.querySelectorAll('#dns-table tbody tr').forEach(function(row) {
+      var typeMatch = activeType === 'ALL' || row.dataset.type === activeType;
+      var textMatch = row.textContent.toLowerCase().includes(q);
+      var show = typeMatch && textMatch;
+      row.style.display = show ? '' : 'none';
+      if (show) visible++;
+    });
+    var total = document.querySelectorAll('#dns-table tbody tr').length;
+    var el = document.getElementById('dns-shown-count');
+    if (el) el.textContent = (visible < total) ? '(' + visible + ' shown)' : '';
+  }
+
+  if (search) search.addEventListener('input', function() {
+    applyFilters();
+    syncStateToForms();
+  });
+
+  document.querySelectorAll('#type-filter button').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      document.querySelectorAll('#type-filter button').forEach(function(b) {
+        b.classList.remove('active');
+      });
+      this.classList.add('active');
+      activeType = this.dataset.type;
+      applyFilters();
+      syncStateToForms();
+    });
+  });
+
+  // Apply on load if params present
+  if (initQ || initType !== 'ALL') applyFilters();
+
+  // Column sort
+  var table = document.getElementById('dns-table');
+  if (table) {
+    var ths = table.querySelectorAll('thead th[data-col]');
+    var sortCol = -1, sortAsc = true;
+    function sortVal(row, col, isNum) {
+      var cell = row.cells[col];
+      var t = (cell.querySelector('[title]') || cell).textContent.trim();
+      return isNum ? (parseFloat(t) || 0) : t.toLowerCase();
+    }
+    ths.forEach(function(th) {
+      th.addEventListener('click', function() {
+        var col = parseInt(th.dataset.col);
+        var isNum = th.dataset.sortNum === '1';
+        sortAsc = (sortCol === col) ? !sortAsc : true;
+        sortCol = col;
+        ths.forEach(function(h) {
+          h.querySelector('.sort-icon').textContent =
+            (parseInt(h.dataset.col) === sortCol) ? (sortAsc ? ' ▲' : ' ▼') : '';
+        });
+        var tbody = table.querySelector('tbody');
+        Array.from(tbody.rows)
+          .sort(function(a, b) {
+            var av = sortVal(a, col, isNum);
+            var bv = sortVal(b, col, isNum);
+            if (typeof av === 'number') return sortAsc ? av - bv : bv - av;
+            return sortAsc ? av.localeCompare(bv) : bv.localeCompare(av);
+          })
+          .forEach(function(r) { tbody.appendChild(r); });
+      });
+    });
+  }
+})();
+</script>
+{% endblock %}

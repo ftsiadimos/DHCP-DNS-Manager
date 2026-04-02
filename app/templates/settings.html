@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+{% block title %}Settings{% endblock %}
+{% block content %}
+<h2 class="mb-4">Settings</h2>
+<form method="post">
+  <!-- Kea DHCP -->
+  <div class="card mb-4">
+    <div class="card-header"><strong>Kea DHCP Control Agent</strong></div>
+    <div class="card-body">
+      <div class="mb-3">
+        <label class="form-label">Kea API URL</label>
+        <input type="text" class="form-control" name="kea_api_url"
+               value="{{ settings.kea_api_url }}" placeholder="http://localhost:8000">
+      </div>
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label class="form-label">Username</label>
+          <input type="text" class="form-control" name="kea_user"
+                 value="{{ settings.kea_user }}" placeholder="(leave blank if not required)" autocomplete="off">
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">Password</label>
+          <input type="password" class="form-control" name="kea_password"
+                 value="{{ settings.kea_password }}" autocomplete="off">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DNS Server -->
+  <div class="card mb-4">
+    <div class="card-header"><strong>DNS Server</strong></div>
+    <div class="card-body row g-3">
+      <div class="col-md-6">
+        <label class="form-label">DNS Server Address</label>
+        <input type="text" class="form-control" name="dns_server"
+               value="{{ settings.dns_server }}" placeholder="127.0.0.1">
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">DNS Port</label>
+        <input type="number" class="form-control" name="dns_port"
+               value="{{ settings.dns_port }}" placeholder="53">
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Statistics Channel Port <small class="text-muted">(BIND stats API)</small></label>
+        <input type="number" class="form-control" name="stats_port"
+               value="{{ settings.stats_port | default(8053) }}" placeholder="8053">
+        <div class="form-text">BIND stats-channels port. Enable with <code>statistics-channels { inet * port 8053; };</code> in named.conf.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RNDC -->
+  <div class="card mb-4">
+    <div class="card-header"><strong>RNDC</strong></div>
+    <div class="card-body row g-3">
+      <div class="col-md-4">
+        <label class="form-label">RNDC Host</label>
+        <input type="text" class="form-control" name="rndc_host"
+               value="{{ settings.rndc_host }}" placeholder="127.0.0.1">
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">RNDC Port</label>
+        <input type="number" class="form-control" name="rndc_port"
+               value="{{ settings.rndc_port }}" placeholder="953">
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">RNDC Binary Path <small class="text-muted">(optional)</small></label>
+        <input type="text" class="form-control" name="rndc_bin"
+               value="{{ settings.rndc_bin }}" placeholder="/usr/sbin/rndc">
+        <div class="form-text">Leave blank to auto-detect. Install with <code>dnf install bind-utils</code> or <code>apt install bind9-utils</code>.</div>
+      </div>
+      <div class="col-12">
+        <label class="form-label">RNDC Key Secret</label>
+        <input type="text" class="form-control font-monospace" name="rndc_key"
+               value="{{ settings.rndc_key }}"
+               placeholder="e.g. /EN1xmWCXDk5OPuALvtEOeP2icwZ2oKMRQJnJ4FXHtM=">
+        <div class="form-text">Paste only the base64 secret value from your rndc key (not the full key block). Set the key name and algorithm in the TSIG section below.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TSIG -->
+  <div class="card mb-4">
+    <div class="card-header"><strong>TSIG Authentication</strong></div>
+    <div class="card-body row g-3">
+      <div class="col-md-4">
+        <label class="form-label">TSIG Key Name</label>
+        <input type="text" class="form-control" name="tsig_key_name"
+               value="{{ settings.tsig_key_name }}" placeholder="rndc-key">
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">TSIG Key Secret</label>
+        <input type="password" class="form-control" name="tsig_key_secret"
+               value="{{ settings.tsig_key_secret }}" autocomplete="off">
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">TSIG Algorithm</label>
+        <select class="form-select" name="tsig_key_algorithm">
+          {% for algo in ["hmac-md5", "hmac-sha1", "hmac-sha256", "hmac-sha384", "hmac-sha512"] %}
+          <option value="{{ algo }}" {{ "selected" if settings.tsig_key_algorithm == algo }}>{{ algo }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- Default Zones -->
+  <div class="card mb-4">
+    <div class="card-header"><strong>Default DNS Zones</strong></div>
+    <div class="card-body row g-3">
+      <div class="col-md-4">
+        <label class="form-label">Default Zone</label>
+        <input type="text" class="form-control" name="default_zone"
+               value="{{ settings.default_zone }}" placeholder="example.com">
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Default Reverse Zone</label>
+        <input type="text" class="form-control" name="default_reverse_zone"
+               value="{{ settings.default_reverse_zone }}" placeholder="168.192.in-addr.arpa">
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Default TTL</label>
+        <input type="number" class="form-control" name="default_ttl"
+               value="{{ settings.default_ttl }}" placeholder="3600">
+      </div>
+    </div>
+  </div>
+
+  <button type="submit" class="btn btn-primary">Save Settings</button>
+</form>
+{% endblock %}

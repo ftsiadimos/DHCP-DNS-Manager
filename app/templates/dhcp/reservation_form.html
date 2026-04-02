@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Add Reservation{% endblock %}
+{% block content %}
+<h2>Add Reservation – Subnet {{ subnet_id }}</h2>
+<form method="post" class="mt-3" style="max-width: 500px;">
+  <div class="mb-3">
+    <label class="form-label">MAC Address</label>
+    <input type="text" name="hw_address" class="form-control" required
+           placeholder="aa:bb:cc:dd:ee:ff">
+  </div>
+  <div class="mb-3">
+    <label class="form-label">IP Address</label>
+    <input type="text" name="ip_address" class="form-control" required
+           placeholder="192.168.1.50">
+  </div>
+  <div class="mb-3">
+    <label class="form-label">Hostname (optional)</label>
+    <input type="text" name="hostname" class="form-control"
+           placeholder="myhost.example.com">
+  </div>
+  <button class="btn btn-primary">Add Reservation</button>
+  <a href="{{ url_for('dhcp_reservations', subnet_id=subnet_id) }}"
+     class="btn btn-secondary">Cancel</a>
+</form>
+{% endblock %}
