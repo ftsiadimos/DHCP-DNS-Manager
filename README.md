@@ -2,6 +2,20 @@
 
 A Flask web application to manage **Kea DHCP** and **BIND/named DNS** services running on the host. The app runs in a Docker container with host networking to communicate with the services.
 
+<p align="center">
+  <img src="https://img.shields.io/badge/Python-3.10+-blue" alt="Python">
+  <img src="https://img.shields.io/badge/Flask-3.x-green" alt="Flask">
+  <a href="https://ghcr.io/ftsiadimos/dhcp-named-manager"><img src="https://img.shields.io/badge/GHCR-available-blue?style=flat-square&logo=github" alt="GHCR Available"></a>
+  <a href="https://github.com/ftsiadimos/dhcp-named-manager/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square" alt="License: MIT"></a>
+</p>
+
+
+<p align="center">
+  <img src="mis/dhcpdns.webp" alt="Dashboard" width="90%" />
+</p>
+<p align="center"><em>Dashboard</em></p>
+
+---
 ## Features
 
 ### DHCP (via Kea Control Agent API)
