@@ -1,7 +1,6 @@
 """Flask application routes."""
 
 from flask import Flask, render_template, request, jsonify, redirect, url_for, flash, session, g
-from datetime import timedelta
 import os
 import re
 from config import Config
@@ -120,7 +119,6 @@ def login():
             session["username"] = user.username
             if request.form.get("remember_me"):
                 session.permanent = True
-                app.permanent_session_lifetime = timedelta(days=90)
             flash("Logged in successfully.", "success")
             return redirect(url_for("index"))
         flash("Invalid password for admin.", "danger")
