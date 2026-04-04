@@ -37,6 +37,10 @@ def inject_nav_defaults():
 def require_login():
     if request.endpoint in ("login", "logout", "static", "api_stats"):
         return
+    s = load_settings()
+    if s.get("disable_login"):
+        g.user = "admin"
+        return
     user_id = session.get("user_id")
     if not user_id:
         return redirect(url_for("login"))
@@ -409,6 +413,7 @@ def settings():
             "default_zone": request.form.get("default_zone", "").strip(),
             "default_reverse_zone": request.form.get("default_reverse_zone", "").strip(),
             "default_ttl": int(request.form.get("default_ttl") or 3600),
+            "disable_login": "true" if request.form.get("disable_login") else "false",
         }
         # Auto-parse removed — rndc_key is now the raw secret only
         save_settings(new_settings)

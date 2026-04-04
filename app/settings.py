@@ -27,8 +27,10 @@ DEFAULTS = {
     "default_zone": "example.com",
     "default_reverse_zone": "168.192.in-addr.arpa",
     "default_ttl": 3600,
+    "disable_login": "false",
 }
 
+BOOL_KEYS = {"disable_login"}
 INT_KEYS = {"dns_port", "rndc_port", "default_ttl", "stats_port"}
 
 
@@ -77,6 +79,8 @@ def load_settings():
                     value = int(value)
                 except (TypeError, ValueError):
                     value = DEFAULTS.get(row.key, value)
+            elif row.key in BOOL_KEYS:
+                value = value.lower() in ("true", "1", "yes")
             data[row.key] = value
     return data
 

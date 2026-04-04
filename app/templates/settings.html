@@ -105,6 +105,19 @@
     </div>
   </div>
 
+  <!-- Authentication -->
+  <div class="card mb-4">
+    <div class="card-header"><strong>Authentication</strong></div>
+    <div class="card-body">
+      <div class="form-check form-switch">
+        <input class="form-check-input" type="checkbox" id="disable_login" name="disable_login"
+               {{ 'checked' if settings.disable_login }}>
+        <label class="form-check-label" for="disable_login">Disable login screen</label>
+      </div>
+      <div class="form-text">Skip the login page and grant access to everyone. Only use this on trusted networks.</div>
+    </div>
+  </div>
+
   <!-- Default Zones -->
   <div class="card mb-4">
     <div class="card-header"><strong>Default DNS Zones</strong></div>
