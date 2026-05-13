@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Kea DHCP & Named DNS Manager – a Flask web app to manage ISC Kea DHCP and BIND/named DNS from a single UI.">
+  <title>Kea DHCP &amp; Named DNS Manager</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+    :root {
+      --bg: #0f172a;
+      --surface: #1e293b;
+      --surface2: #263044;
+      --border: #334155;
+      --accent: #3b82f6;
+      --accent-dim: rgba(59,130,246,.15);
+      --text: #f1f5f9;
+      --muted: #94a3b8;
+      --green: #22c55e;
+      --yellow: #f59e0b;
+    }
+    *, *::before, *::after { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font-family: Inter, system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+    }
+
+    /* ── NAV ── */
+    nav {
+      position: sticky; top: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: .75rem 2rem;
+      background: rgba(15,23,42,.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-brand { font-weight: 700; font-size: 1.05rem; color: var(--text); text-decoration: none; }
+    .nav-links { display: flex; gap: 1.5rem; }
+    .nav-links a { color: var(--muted); text-decoration: none; font-size: .9rem; font-weight: 500; transition: color .2s; }
+    .nav-links a:hover { color: var(--text); }
+
+    /* ── HERO ── */
+    .hero {
+      display: flex; flex-direction: column; align-items: center;
+      text-align: center;
+      padding: 6rem 1.5rem 4rem;
+      background: radial-gradient(ellipse 80% 60% at 50% -10%, rgba(59,130,246,.18), transparent);
+    }
+    .badges { display: flex; flex-wrap: wrap; gap: .5rem; justify-content: center; margin-bottom: 1.5rem; }
+    .badges img { height: 20px; }
+    .hero h1 {
+      margin: 0 0 1rem;
+      font-size: clamp(2.5rem, 5vw, 3.75rem);
+      font-weight: 700;
+      line-height: 1.1;
+      background: linear-gradient(135deg, #f1f5f9 0%, #94a3b8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .hero p {
+      max-width: 560px;
+      color: var(--muted);
+      font-size: 1.1rem;
+      margin: 0 0 2.5rem;
+    }
+    .cta-group { display: flex; flex-wrap: wrap; gap: .75rem; justify-content: center; }
+    .btn {
+      display: inline-flex; align-items: center; gap: .5rem;
+      padding: .7rem 1.5rem; border-radius: .6rem;
+      font-weight: 600; font-size: .95rem; text-decoration: none;
+      transition: transform .15s, box-shadow .15s;
+    }
+    .btn:hover { transform: translateY(-2px); }
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+      box-shadow: 0 8px 30px rgba(59,130,246,.35);
+    }
+    .btn-ghost {
+      background: var(--surface2);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    /* ── SECTIONS ── */
+    section { padding: 4rem 1.5rem; max-width: 1040px; margin: 0 auto; }
+    section h2 {
+      font-size: 1.6rem; font-weight: 700;
+      color: var(--text); margin: 0 0 1.75rem;
+    }
+    section h2 span { color: var(--accent); }
+
+    /* ── FEATURE GRID ── */
+    .feature-grid { display: grid; gap: 1rem; }
+    @media (min-width: 640px) { .feature-grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (min-width: 960px) { .feature-grid { grid-template-columns: repeat(3, 1fr); } }
+
+    .feature-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: .85rem;
+      padding: 1.5rem;
+      transition: border-color .2s, box-shadow .2s;
+    }
+    .feature-card:hover { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+    .feature-icon { font-size: 1.6rem; margin-bottom: .75rem; }
+    .feature-card h3 { margin: 0 0 .5rem; font-size: 1rem; font-weight: 600; color: var(--text); }
+    .feature-card p { margin: 0; color: var(--muted); font-size: .9rem; }
+
+    /* ── CODE BLOCK ── */
+    .code-block {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: .85rem;
+      overflow: hidden;
+    }
+    .code-title {
+      display: flex; align-items: center; gap: .5rem;
+      padding: .65rem 1rem;
+      border-bottom: 1px solid var(--border);
+      font-size: .8rem; color: var(--muted); font-weight: 500;
+    }
+    .dot { width: 10px; height: 10px; border-radius: 50%; }
+    .dot.r { background: #ef4444; } .dot.y { background: var(--yellow); } .dot.g { background: var(--green); }
+    pre {
+      margin: 0;
+      padding: 1.25rem 1.5rem;
+      overflow-x: auto;
+      font-family: "JetBrains Mono", "Fira Code", monospace;
+      font-size: .85rem;
+      color: #cbd5e1;
+      line-height: 1.7;
+    }
+    pre .kw  { color: #93c5fd; }
+    pre .str { color: #86efac; }
+    pre .cm  { color: #475569; }
+
+    /* ── TWO-COLUMN INSTALL ── */
+    .install-grid { display: grid; gap: 1rem; }
+    @media (min-width: 700px) { .install-grid { grid-template-columns: repeat(2, 1fr); } }
+
+    /* ── PREREQ ── */
+    .prereq-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: .75rem; }
+    .prereq-list li {
+      display: flex; align-items: flex-start; gap: .75rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: .75rem;
+      padding: 1rem 1.25rem;
+    }
+    .prereq-list li .icon { font-size: 1.2rem; flex-shrink: 0; margin-top: .1rem; }
+    .prereq-list li strong { display: block; margin-bottom: .2rem; }
+    .prereq-list li p { margin: 0; color: var(--muted); font-size: .9rem; }
+
+    /* ── FOOTER ── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 2rem 1.5rem;
+      text-align: center;
+      color: var(--muted);
+      font-size: .88rem;
+    }
+    footer a { color: var(--accent); text-decoration: none; }
+    footer a:hover { text-decoration: underline; }
+
+    code {
+      font-family: "JetBrains Mono", "Fira Code", monospace;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: .3rem;
+      padding: .1em .4em;
+      font-size: .87em;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- NAV -->
+  <nav>
+    <a class="nav-brand" href="#">🌐 kea-named-manageUI</a>
+    <div class="nav-links">
+      <a href="#features">Features</a>
+      <a href="#install">Quick Start</a>
+      <a href="https://github.com/ftsiadimos/DHCP-DNS-Manager" target="_blank" rel="noopener noreferrer">GitHub</a>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <header class="hero">
+    <div class="badges">
+      <img src="https://img.shields.io/badge/Python-3.10+-blue?style=flat-square" alt="Python">
+      <img src="https://img.shields.io/badge/Flask-3.x-green?style=flat-square" alt="Flask">
+      <img src="https://img.shields.io/badge/GHCR-available-blue?style=flat-square&logo=github" alt="GHCR">
+      <img src="https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square" alt="MIT License">
+    </div>
+    <h1>Kea DHCP &amp; Named DNS Manager</h1>
+    <p>A Flask web application to manage ISC Kea DHCP and BIND/named DNS services — subnets, reservations, leases, zones, and records — all from a single UI.</p>
+    <div class="cta-group">
+      <a class="btn btn-primary" href="https://github.com/ftsiadimos/DHCP-DNS-Manager" target="_blank" rel="noopener noreferrer">
+        ★ View on GitHub
+      </a>
+      <a class="btn btn-ghost" href="#install">Quick Start →</a>
+    </div>
+  </header>
+
+  <!-- FEATURES -->
+  <section id="features">
+    <h2>What's included <span>↗</span></h2>
+    <div class="feature-grid">
+      <div class="feature-card">
+        <div class="feature-icon">🗂️</div>
+        <h3>DHCP Subnets</h3>
+        <p>View, create, edit, and delete Kea subnets including pools and DHCP options.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🔒</div>
+        <h3>Reservations</h3>
+        <p>Add and manage static MAC → IP reservations for predictable host addressing.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📋</div>
+        <h3>Lease Browser</h3>
+        <p>View and delete active DHCP leases returned by the Kea Control Agent API.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🌍</div>
+        <h3>DNS Zones</h3>
+        <p>Browse forward and reverse zones via AXFR and manage records interactively.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📝</div>
+        <h3>DNS Record Management</h3>
+        <p>Add, edit, and delete A, AAAA, CNAME, MX, TXT, PTR, NS, and SRV records.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">⚙️</div>
+        <h3>rndc Console</h3>
+        <p>Run rndc commands — status, reload, flush, freeze/thaw — directly from the UI.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- PREREQUISITES -->
+  <section>
+    <h2>Prerequisites</h2>
+    <ul class="prereq-list">
+      <li>
+        <span class="icon">🟡</span>
+        <div>
+          <strong>ISC Kea DHCP + Control Agent</strong>
+          <p>Kea Control Agent must be running on port <code>8000</code> on the host (<code>kea-ctrl-agent</code> &amp; <code>kea-dhcp4-server</code>).</p>
+        </div>
+      </li>
+      <li>
+        <span class="icon">🔵</span>
+        <div>
+          <strong>BIND / named</strong>
+          <p>Zone transfers (AXFR) from localhost must be allowed, dynamic updates enabled, and <code>/etc/bind/rndc.key</code> accessible.</p>
+        </div>
+      </li>
+      <li>
+        <span class="icon">🐳</span>
+        <div>
+          <strong>Docker &amp; Compose</strong>
+          <p>The app runs in a Docker container with host networking to reach both services.</p>
+        </div>
+      </li>
+    </ul>
+  </section>
+
+  <!-- QUICK START -->
+  <section id="install">
+    <h2>Quick Start</h2>
+    <div class="install-grid">
+      <div>
+        <p style="color:var(--muted);margin-top:0;">Option 1 — pull the pre-built image directly:</p>
+        <div class="code-block">
+          <div class="code-title">
+            <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+            <span>docker run</span>
+          </div>
+          <pre><span class="kw">docker</span> run -d \
+  --name dhcp-dns-manager \
+  --network host \
+  --restart unless-stopped \
+  ghcr.io/ftsiadimos/dhcp-named-manager:latest</pre>
+        </div>
+      </div>
+      <div>
+        <p style="color:var(--muted);margin-top:0;">Option 2 — Docker Compose:</p>
+        <div class="code-block">
+          <div class="code-title">
+            <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+            <span>docker-compose.yml</span>
+          </div>
+          <pre><span class="kw">services</span>:
+  dhcp-dns-manager:
+    image: <span class="str">ghcr.io/ftsiadimos/dhcp-named-manager:latest</span>
+    network_mode: <span class="str">host</span>
+    restart: <span class="str">unless-stopped</span>
+    volumes:
+      - ./data:/data</pre>
+        </div>
+        <div style="margin-top:.75rem">
+          <div class="code-block">
+            <pre><span class="kw">docker</span> compose up -d</pre>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <p>
+      Released under the <a href="https://github.com/ftsiadimos/DHCP-DNS-Manager/blob/main/LICENSE">MIT License</a>.
+      Hosted on <a href="https://github.com/ftsiadimos/DHCP-DNS-Manager" target="_blank" rel="noopener noreferrer">GitHub</a>.
+    </p>
+  </footer>
+
+</body>
+</html>
